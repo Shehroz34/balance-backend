@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { mustGetEnv } from "../utils/env.ts";
+import { mustGetEnv } from "../utils/env";
 
 export async function connectDB(): Promise<void> {
   const uri = mustGetEnv("MONGO_URI");

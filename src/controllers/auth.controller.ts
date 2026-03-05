@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User.ts";
-import { mustGetEnv } from "../utils/env.ts";
+import { User } from "../models/User";
+import { mustGetEnv } from "../utils/env";
 
 function signToken(userId: string): string {
     const secret = mustGetEnv("JWT_SECRET");
