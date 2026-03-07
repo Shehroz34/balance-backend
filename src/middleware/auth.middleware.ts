@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { mustGetEnv } from "../utils/env";
 
 interface JwtPayload {
-  userId: string;
+  sub: string;
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -19,7 +19,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
     const decoded = jwt.verify(token, secret) as JwtPayload;
 
-    req.userId = decoded.userId;
+    req.userId = decoded.sub;
 
     next();
   } catch (error) {

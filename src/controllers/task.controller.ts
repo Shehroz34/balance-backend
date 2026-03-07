@@ -46,7 +46,7 @@ export async function getTasks(req: Request, res: Response) {
       return res.status(500).json({ message: "Failed to fetch tasks" });
     }
   }
-  
+
 // Get Single Task
 export async function getTaskById(req: Request, res: Response) {
     try {
@@ -69,3 +69,54 @@ export async function getTaskById(req: Request, res: Response) {
     }
   }
   
+// Update Task
+export async function updateTask(req: Request, res: Response) {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const updatedTask = await Task.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user: req.userId,
+      },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    return res.json(updatedTask);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update task" });
+  }
+}
+
+
+// Delete Task
+export async function deleteTask(req: Request, res: Response) {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+  
+      const deletedTask = await Task.findOneAndDelete({
+        _id: req.params.id,
+        user: req.userId,
+      });
+  
+      if (!deletedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+  
+      return res.json({ message: "Task deleted successfully" });
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to delete task" });
+    }
+  }
