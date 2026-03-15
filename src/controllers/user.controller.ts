@@ -1,4 +1,3 @@
-
 import { Request, Response } from "express";
 import { User } from "../models/User";
 
@@ -37,7 +36,7 @@ export async function updateAvailability(req: Request, res: Response) {
         breakEnd,
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       }
     ).select("-password");
