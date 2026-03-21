@@ -1,6 +1,6 @@
 import { ITask } from "../models/task.model";
 
-interface PlannedTask {
+export interface PlannedTaskBlock {
   taskId: string;
   title: string;
   date: string;
@@ -9,6 +9,19 @@ interface PlannedTask {
   duration: number;
   priority: string;
   deadline: Date;
+  status: "scheduled" | "splitAcrossDays" | "atRisk";
+}
+
+export interface TaskPlanningSummary {
+  taskId: string;
+  title: string;
+  totalDuration: number;
+  scheduledDuration: number;
+  remainingDuration: number;
+  deadline: Date;
+  priority: string;
+  status: "scheduled" | "splitAcrossDays" | "atRisk" | "missedDeadline";
+  reason?: string;
 }
 
 interface AvailabilitySettings {
@@ -16,6 +29,11 @@ interface AvailabilitySettings {
   availableTo: string;
   breakStart: string;
   breakEnd: string;
+}
+
+interface PlanResult {
+  plan: PlannedTaskBlock[];
+  summaries: TaskPlanningSummary[];
 }
 
 function pad(num: number): string {
@@ -43,23 +61,36 @@ function parseTimeToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
+function getDateTimeFromDayAndMinutes(day: Date, totalMinutes: number): Date {
+  const result = new Date(day);
+  result.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+  return result;
+}
+
 export function generateDailyPlan(
   tasks: ITask[],
   availability: AvailabilitySettings
-): PlannedTask[] {
+): PlanResult {
   const WORK_START = parseTimeToMinutes(availability.availableFrom);
   const WORK_END = parseTimeToMinutes(availability.availableTo);
   const BREAK_START = parseTimeToMinutes(availability.breakStart);
   const BREAK_END = parseTimeToMinutes(availability.breakEnd);
   const BREAK_GAP = 15;
 
-  const planned: PlannedTask[] = [];
+  const plan: PlannedTaskBlock[] = [];
+  const summaries: TaskPlanningSummary[] = [];
 
   let currentDay = new Date();
+  currentDay.setHours(0, 0, 0, 0);
+
   let currentTime = WORK_START;
 
   for (const task of tasks) {
+    const originalDuration = task.duration;
     let remainingDuration = task.duration;
+    let scheduledDuration = 0;
+    let blockCount = 0;
+    const deadline = new Date(task.deadline);
 
     while (remainingDuration > 0) {
       if (currentTime >= BREAK_START && currentTime < BREAK_END) {
@@ -72,17 +103,41 @@ export function generateDailyPlan(
         continue;
       }
 
-      let segmentEnd = currentTime < BREAK_START ? BREAK_START : WORK_END;
-      let availableMinutes = segmentEnd - currentTime;
+      const currentDateTime = getDateTimeFromDayAndMinutes(currentDay, currentTime);
+
+      if (currentDateTime >= deadline) {
+        break;
+      }
+
+      const segmentEnd = currentTime < BREAK_START ? BREAK_START : WORK_END;
+      const availableMinutes = segmentEnd - currentTime;
 
       if (availableMinutes <= 0) {
         currentTime = segmentEnd;
         continue;
       }
 
-      const blockDuration = Math.min(remainingDuration, availableMinutes);
+      const minutesUntilDeadline = Math.floor(
+        (deadline.getTime() - currentDateTime.getTime()) / (1000 * 60)
+      );
 
-      planned.push({
+      if (minutesUntilDeadline <= 0) {
+        break;
+      }
+
+      const blockDuration = Math.min(
+        remainingDuration,
+        availableMinutes,
+        minutesUntilDeadline
+      );
+
+      if (blockDuration <= 0) {
+        break;
+      }
+
+      blockCount++;
+
+      plan.push({
         taskId: String(task._id),
         title: task.title,
         date: formatDate(currentDay),
@@ -91,16 +146,59 @@ export function generateDailyPlan(
         duration: blockDuration,
         priority: task.priority,
         deadline: task.deadline,
+        status: "scheduled",
       });
 
       currentTime += blockDuration;
       remainingDuration -= blockDuration;
+      scheduledDuration += blockDuration;
 
       if (remainingDuration === 0) {
         currentTime += BREAK_GAP;
       }
     }
+
+    let summaryStatus: "scheduled" | "splitAcrossDays" | "atRisk" | "missedDeadline";
+    let reason: string | undefined;
+
+    if (scheduledDuration === 0) {
+      summaryStatus = "missedDeadline";
+      reason = "No time available before the deadline.";
+    } else if (remainingDuration > 0) {
+      summaryStatus = "atRisk";
+      reason = "Task could only be partially scheduled before the deadline.";
+    } else if (blockCount > 1) {
+      summaryStatus = "splitAcrossDays";
+      reason = "Task was split into multiple schedule blocks.";
+    } else {
+      summaryStatus = "scheduled";
+    }
+
+    summaries.push({
+      taskId: String(task._id),
+      title: task.title,
+      totalDuration: originalDuration,
+      scheduledDuration,
+      remainingDuration,
+      deadline: task.deadline,
+      priority: task.priority,
+      status: summaryStatus,
+      reason,
+    });
   }
 
-  return planned;
+  for (const block of plan) {
+    const taskSummary = summaries.find((s) => s.taskId === block.taskId);
+    if (!taskSummary) continue;
+
+    if (taskSummary.status === "splitAcrossDays") {
+      block.status = "splitAcrossDays";
+    } else if (taskSummary.status === "atRisk") {
+      block.status = "atRisk";
+    } else {
+      block.status = "scheduled";
+    }
+  }
+
+  return { plan, summaries };
 }

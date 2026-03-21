@@ -46,12 +46,28 @@ export async function getPlannedSchedule(req: Request, res: Response) {
 
     const sortedTasks = sortTasksForSchedule(tasks);
 
-    const plannedSchedule = generateDailyPlan(sortedTasks, {
+    const result = generateDailyPlan(sortedTasks, {
       availableFrom: user.availableFrom,
       availableTo: user.availableTo,
       breakStart: user.breakStart,
       breakEnd: user.breakEnd,
     });
+
+    const scheduledCount = result.summaries.filter(
+      (t) => t.status === "scheduled"
+    ).length;
+
+    const splitCount = result.summaries.filter(
+      (t) => t.status === "splitAcrossDays"
+    ).length;
+
+    const atRiskCount = result.summaries.filter(
+      (t) => t.status === "atRisk"
+    ).length;
+
+    const missedCount = result.summaries.filter(
+      (t) => t.status === "missedDeadline"
+    ).length;
 
     return res.json({
       message: "Planned schedule generated successfully",
@@ -62,10 +78,18 @@ export async function getPlannedSchedule(req: Request, res: Response) {
         breakEnd: user.breakEnd,
       },
       totalTasks: sortedTasks.length,
-      totalBlocks: plannedSchedule.length,
-      plan: plannedSchedule,
+      totalBlocks: result.plan.length,
+      stats: {
+        scheduled: scheduledCount,
+        splitAcrossDays: splitCount,
+        atRisk: atRiskCount,
+        missedDeadline: missedCount,
+      },
+      plan: result.plan,
+      summaries: result.summaries,
     });
   } catch (error) {
+    console.error("PLANNED SCHEDULE ERROR:", error);
     return res.status(500).json({ message: "Failed to generate planned schedule" });
   }
 }
