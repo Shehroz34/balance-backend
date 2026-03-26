@@ -25,7 +25,7 @@ export async function updateAvailability(req: Request, res: Response) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { availableFrom, availableTo, breakStart, breakEnd } = req.body;
+    const { availableFrom, availableTo, breakStart, breakEnd, freeDays } = req.body;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
@@ -34,6 +34,7 @@ export async function updateAvailability(req: Request, res: Response) {
         availableTo,
         breakStart,
         breakEnd,
+        freeDays,
       },
       {
         returnDocument: "after",

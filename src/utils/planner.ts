@@ -29,6 +29,7 @@ interface AvailabilitySettings {
   availableTo: string;
   breakStart: string;
   breakEnd: string;
+  freeDays?: string[];
 }
 
 interface PlanResult {
@@ -56,6 +57,18 @@ function addDays(date: Date, days: number): Date {
   return newDate;
 }
 
+function getWeekdayName(date: Date): string {
+  return [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ][date.getDay()];
+}
+
 function parseTimeToMinutes(time: string): number {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -76,6 +89,7 @@ export function generateDailyPlan(
   const BREAK_START = parseTimeToMinutes(availability.breakStart);
   const BREAK_END = parseTimeToMinutes(availability.breakEnd);
   const BREAK_GAP = 15;
+  const freeDays = new Set(availability.freeDays ?? []);
 
   const plan: PlannedTaskBlock[] = [];
   const summaries: TaskPlanningSummary[] = [];
@@ -93,6 +107,12 @@ export function generateDailyPlan(
     const deadline = new Date(task.deadline);
 
     while (remainingDuration > 0) {
+      if (freeDays.has(getWeekdayName(currentDay))) {
+        currentDay = addDays(currentDay, 1);
+        currentTime = WORK_START;
+        continue;
+      }
+
       if (currentTime >= BREAK_START && currentTime < BREAK_END) {
         currentTime = BREAK_END;
       }

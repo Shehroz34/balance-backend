@@ -47,6 +47,7 @@ async function getPlannedSchedule(req, res) {
             availableTo: user.availableTo,
             breakStart: user.breakStart,
             breakEnd: user.breakEnd,
+            freeDays: user.freeDays ?? [],
         });
         const scheduledCount = result.summaries.filter((t) => t.status === "scheduled").length;
         const splitCount = result.summaries.filter((t) => t.status === "splitAcrossDays").length;
@@ -59,6 +60,7 @@ async function getPlannedSchedule(req, res) {
                 availableTo: user.availableTo,
                 breakStart: user.breakStart,
                 breakEnd: user.breakEnd,
+                freeDays: user.freeDays ?? [],
             },
             totalTasks: sortedTasks.length,
             totalBlocks: result.plan.length,
@@ -96,6 +98,7 @@ async function getReplannedSchedule(req, res) {
             availableTo: user.availableTo,
             breakStart: user.breakStart,
             breakEnd: user.breakEnd,
+            freeDays: user.freeDays ?? [],
         });
         const scheduledCount = result.summaries.filter((t) => t.status === "scheduled").length;
         const splitCount = result.summaries.filter((t) => t.status === "splitAcrossDays").length;
@@ -108,6 +111,7 @@ async function getReplannedSchedule(req, res) {
                 availableTo: user.availableTo,
                 breakStart: user.breakStart,
                 breakEnd: user.breakEnd,
+                freeDays: user.freeDays ?? [],
             },
             totalTasks: sortedRemainingTasks.length,
             totalBlocks: result.plan.length,

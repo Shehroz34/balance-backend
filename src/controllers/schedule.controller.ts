@@ -52,6 +52,7 @@ export async function getPlannedSchedule(req: Request, res: Response) {
       availableTo: user.availableTo,
       breakStart: user.breakStart,
       breakEnd: user.breakEnd,
+      freeDays: user.freeDays ?? [],
     });
 
     const scheduledCount = result.summaries.filter(
@@ -77,6 +78,7 @@ export async function getPlannedSchedule(req: Request, res: Response) {
         availableTo: user.availableTo,
         breakStart: user.breakStart,
         breakEnd: user.breakEnd,
+        freeDays: user.freeDays ?? [],
       },
       totalTasks: sortedTasks.length,
       totalBlocks: result.plan.length,
@@ -119,6 +121,7 @@ export async function getReplannedSchedule(req: Request, res: Response) {
       availableTo: user.availableTo,
       breakStart: user.breakStart,
       breakEnd: user.breakEnd,
+      freeDays: user.freeDays ?? [],
     });
 
     const scheduledCount = result.summaries.filter(
@@ -144,6 +147,7 @@ export async function getReplannedSchedule(req: Request, res: Response) {
         availableTo: user.availableTo,
         breakStart: user.breakStart,
         breakEnd: user.breakEnd,
+        freeDays: user.freeDays ?? [],
       },
       totalTasks: sortedRemainingTasks.length,
       totalBlocks: result.plan.length,

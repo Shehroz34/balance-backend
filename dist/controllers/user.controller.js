@@ -23,12 +23,13 @@ async function updateAvailability(req, res) {
         if (!req.userId) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        const { availableFrom, availableTo, breakStart, breakEnd } = req.body;
+        const { availableFrom, availableTo, breakStart, breakEnd, freeDays } = req.body;
         const updatedUser = await User_1.User.findByIdAndUpdate(req.userId, {
             availableFrom,
             availableTo,
             breakStart,
             breakEnd,
+            freeDays,
         }, {
             returnDocument: "after",
             runValidators: true,

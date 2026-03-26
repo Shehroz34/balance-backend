@@ -68,6 +68,19 @@ const userSchema = new mongoose_1.Schema({
         type: String,
         default: "14:00",
     },
+    freeDays: {
+        type: [String],
+        enum: [
+            "sunday",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+        ],
+        default: [],
+    },
 }, {
     timestamps: true,
 });

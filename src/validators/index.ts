@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const weekDayValues = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
 
 export const registerSchema = z.object({
   name: z
@@ -128,4 +137,9 @@ export const availabilitySchema = z.object({
   breakEnd: z
     .string()
     .regex(timeRegex, "breakEnd must be in HH:MM format"),
+
+  freeDays: z
+    .array(z.enum(weekDayValues))
+    .max(7, "freeDays cannot contain more than 7 values")
+    .default([]),
 });

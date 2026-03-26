@@ -17,6 +17,17 @@ function addDays(date, days) {
     newDate.setDate(newDate.getDate() + days);
     return newDate;
 }
+function getWeekdayName(date) {
+    return [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+    ][date.getDay()];
+}
 function parseTimeToMinutes(time) {
     const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
@@ -32,6 +43,7 @@ function generateDailyPlan(tasks, availability) {
     const BREAK_START = parseTimeToMinutes(availability.breakStart);
     const BREAK_END = parseTimeToMinutes(availability.breakEnd);
     const BREAK_GAP = 15;
+    const freeDays = new Set(availability.freeDays ?? []);
     const plan = [];
     const summaries = [];
     let currentDay = new Date();
@@ -44,6 +56,11 @@ function generateDailyPlan(tasks, availability) {
         let blockCount = 0;
         const deadline = new Date(task.deadline);
         while (remainingDuration > 0) {
+            if (freeDays.has(getWeekdayName(currentDay))) {
+                currentDay = addDays(currentDay, 1);
+                currentTime = WORK_START;
+                continue;
+            }
             if (currentTime >= BREAK_START && currentTime < BREAK_END) {
                 currentTime = BREAK_END;
             }

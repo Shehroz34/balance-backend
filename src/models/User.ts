@@ -8,6 +8,7 @@ export interface IUser extends Document {
   availableTo: string;
   breakStart: string;
   breakEnd: string;
+  freeDays: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +46,19 @@ const userSchema = new Schema<IUser>(
     breakEnd: {
       type: String,
       default: "14:00",
+    },
+    freeDays: {
+      type: [String],
+      enum: [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ],
+      default: [],
     },
   },
   {

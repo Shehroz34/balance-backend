@@ -3,6 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.availabilitySchema = exports.updateTaskSchema = exports.createTaskSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const weekDayValues = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+];
 exports.registerSchema = zod_1.z.object({
     name: zod_1.z
         .string()
@@ -107,4 +116,8 @@ exports.availabilitySchema = zod_1.z.object({
     breakEnd: zod_1.z
         .string()
         .regex(timeRegex, "breakEnd must be in HH:MM format"),
+    freeDays: zod_1.z
+        .array(zod_1.z.enum(weekDayValues))
+        .max(7, "freeDays cannot contain more than 7 values")
+        .default([]),
 });
