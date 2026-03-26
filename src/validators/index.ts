@@ -48,9 +48,7 @@ export const createTaskSchema = z.object({
     .default(""),
 
   duration: z
-    .number({
-      invalid_type_error: "Duration must be a number",
-    })
+    .number()
     .int("Duration must be a whole number")
     .min(1, "Duration must be at least 1 minute"),
 
@@ -89,9 +87,7 @@ export const updateTaskSchema = z.object({
     .optional(),
 
   duration: z
-    .number({
-      invalid_type_error: "Duration must be a number",
-    })
+    .number()
     .int("Duration must be a whole number")
     .min(1, "Duration must be at least 1 minute")
     .optional(),
