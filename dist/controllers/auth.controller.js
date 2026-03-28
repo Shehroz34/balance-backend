@@ -46,7 +46,7 @@ async function register(req, res) {
         });
     }
     catch (err) {
-        console.error("REGISTER ERROR:", err);
+        console.error("Register failed", err);
         return res.status(500).json({ message: "Server error." });
     }
 }
@@ -75,7 +75,7 @@ async function login(req, res) {
         });
     }
     catch (err) {
-        console.error("LOGIN ERROR:", err);
+        console.error("Login failed", err);
         return res.status(500).json({ message: "Server error." });
     }
 }

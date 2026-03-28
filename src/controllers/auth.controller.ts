@@ -53,7 +53,7 @@ export async function register(req: Request, res: Response) {
       },
     });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
+    console.error("Register failed", err);
     return res.status(500).json({ message: "Server error." });
   }
 }
@@ -92,7 +92,7 @@ export async function login(req: Request, res: Response) {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error("Login failed", err);
     return res.status(500).json({ message: "Server error." });
   }
 }

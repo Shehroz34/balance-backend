@@ -33,7 +33,7 @@ async function createTask(req, res) {
         return res.status(201).json(task);
     }
     catch (error) {
-        console.error("CREATE TASK ERROR:", error);
+        console.error("Create task failed", error);
         return res.status(500).json({ message: "Failed to create task" });
     }
 }
@@ -56,7 +56,7 @@ async function getTasks(req, res) {
         });
     }
     catch (error) {
-        console.error("GET TASKS ERROR:", error);
+        console.error("Get tasks failed", error);
         return res.status(500).json({ message: "Failed to fetch tasks" });
     }
 }
@@ -76,7 +76,7 @@ async function getTaskById(req, res) {
         return res.json(task);
     }
     catch (error) {
-        console.error("GET TASK BY ID ERROR:", error);
+        console.error("Get task by id failed", error);
         return res.status(500).json({ message: "Failed to fetch task" });
     }
 }
@@ -102,7 +102,7 @@ async function updateTask(req, res) {
         });
     }
     catch (error) {
-        console.error("UPDATE TASK ERROR:", error);
+        console.error("Update task failed", error);
         return res.status(500).json({ message: "Failed to update task" });
     }
 }
@@ -122,7 +122,7 @@ async function deleteTask(req, res) {
         return res.json({ message: "Task deleted successfully" });
     }
     catch (error) {
-        console.error("DELETE TASK ERROR:", error);
+        console.error("Delete task failed", error);
         return res.status(500).json({ message: "Failed to delete task" });
     }
 }
@@ -150,7 +150,7 @@ async function completeTask(req, res) {
         });
     }
     catch (error) {
-        console.error("COMPLETE TASK ERROR:", error);
+        console.error("Complete task failed", error);
         return res.status(500).json({ message: "Failed to complete task" });
     }
 }
@@ -178,7 +178,7 @@ async function reopenTask(req, res) {
         });
     }
     catch (error) {
-        console.error("REOPEN TASK ERROR:", error);
+        console.error("Reopen task failed", error);
         return res.status(500).json({ message: "Failed to reopen task" });
     }
 }

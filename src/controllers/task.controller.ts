@@ -28,7 +28,7 @@ export async function createTask(req: Request, res: Response) {
 
     return res.status(201).json(task);
   } catch (error) {
-    console.error("CREATE TASK ERROR:", error);
+    console.error("Create task failed", error);
     return res.status(500).json({ message: "Failed to create task" });
   }
 }
@@ -55,7 +55,7 @@ export async function getTasks(req: Request, res: Response) {
       tasks,
     });
   } catch (error) {
-    console.error("GET TASKS ERROR:", error);
+    console.error("Get tasks failed", error);
     return res.status(500).json({ message: "Failed to fetch tasks" });
   }
 }
@@ -78,7 +78,7 @@ export async function getTaskById(req: Request, res: Response) {
 
     return res.json(task);
   } catch (error) {
-    console.error("GET TASK BY ID ERROR:", error);
+    console.error("Get task by id failed", error);
     return res.status(500).json({ message: "Failed to fetch task" });
   }
 }
@@ -111,7 +111,7 @@ export async function updateTask(req: Request, res: Response) {
       task: updatedTask,
     });
   } catch (error) {
-    console.error("UPDATE TASK ERROR:", error);
+    console.error("Update task failed", error);
     return res.status(500).json({ message: "Failed to update task" });
   }
 }
@@ -134,7 +134,7 @@ export async function deleteTask(req: Request, res: Response) {
 
     return res.json({ message: "Task deleted successfully" });
   } catch (error) {
-    console.error("DELETE TASK ERROR:", error);
+    console.error("Delete task failed", error);
     return res.status(500).json({ message: "Failed to delete task" });
   }
 }
@@ -163,13 +163,12 @@ export async function completeTask(req: Request, res: Response) {
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
-
     return res.json({
       message: "Task marked as completed successfully",
       task,
     });
   } catch (error) {
-    console.error("COMPLETE TASK ERROR:", error);
+    console.error("Complete task failed", error);
     return res.status(500).json({ message: "Failed to complete task" });
   }
 }
@@ -204,7 +203,7 @@ export async function reopenTask(req: Request, res: Response) {
       task,
     });
   } catch (error) {
-    console.error("REOPEN TASK ERROR:", error);
+    console.error("Reopen task failed", error);
     return res.status(500).json({ message: "Failed to reopen task" });
   }
 }

@@ -24,7 +24,7 @@ async function getSuggestedSchedule(req, res) {
         });
     }
     catch (error) {
-        console.error("SUGGESTED SCHEDULE ERROR:", error);
+        console.error("Suggested schedule generation failed", error);
         return res.status(500).json({ message: "Failed to generate schedule" });
     }
 }
@@ -75,7 +75,7 @@ async function getPlannedSchedule(req, res) {
         });
     }
     catch (error) {
-        console.error("PLANNED SCHEDULE ERROR:", error);
+        console.error("Planned schedule generation failed", error);
         return res.status(500).json({ message: "Failed to generate planned schedule" });
     }
 }
@@ -126,7 +126,7 @@ async function getReplannedSchedule(req, res) {
         });
     }
     catch (error) {
-        console.error("REPLAN SCHEDULE ERROR:", error);
+        console.error("Schedule replan failed", error);
         return res.status(500).json({ message: "Failed to re-plan schedule" });
     }
 }
