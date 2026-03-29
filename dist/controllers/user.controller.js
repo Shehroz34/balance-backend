@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProfile = getProfile;
 exports.updateAvailability = updateAvailability;
+const task_model_1 = require("../models/task.model");
 const User_1 = require("../models/User");
 async function getProfile(req, res) {
     try {
@@ -37,6 +38,17 @@ async function updateAvailability(req, res) {
         if (!updatedUser) {
             return res.status(404).json({ message: "User not found" });
         }
+        // Availability changes should invalidate any manually pinned task blocks
+        // so the planner can rebuild the timetable from the new constraints.
+        await task_model_1.Task.updateMany({
+            user: req.userId,
+            status: "pending",
+        }, {
+            $set: {
+                startTime: null,
+                endTime: null,
+            },
+        });
         return res.json({
             message: "Availability updated successfully",
             user: updatedUser,

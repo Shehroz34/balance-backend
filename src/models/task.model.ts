@@ -5,6 +5,8 @@ export interface ITask extends Document {
   description?: string;
   duration: number;
   deadline: Date;
+  startTime?: Date | null;
+  endTime?: Date | null;
   priority: "low" | "medium" | "high";
   difficulty: "easy" | "medium" | "hard";
   status: "pending" | "completed";
@@ -33,6 +35,14 @@ const taskSchema = new Schema<ITask>(
     deadline: {
       type: Date,
       required: true,
+    },
+    startTime: {
+      type: Date,
+      default: null,
+    },
+    endTime: {
+      type: Date,
+      default: null,
     },
     priority: {
       type: String,

@@ -65,6 +65,16 @@ export const createTaskSchema = z.object({
     .string()
     .datetime("Deadline must be a valid ISO date string"),
 
+  startTime: z
+    .string()
+    .datetime("startTime must be a valid ISO date string")
+    .optional(),
+
+  endTime: z
+    .string()
+    .datetime("endTime must be a valid ISO date string")
+    .optional(),
+
   priority: z
     .enum(["low", "medium", "high"])
     .optional()
@@ -104,6 +114,16 @@ export const updateTaskSchema = z.object({
   deadline: z
     .string()
     .datetime("Deadline must be a valid ISO date string")
+    .optional(),
+
+  startTime: z
+    .string()
+    .datetime("startTime must be a valid ISO date string")
+    .optional(),
+
+  endTime: z
+    .string()
+    .datetime("endTime must be a valid ISO date string")
     .optional(),
 
   priority: z

@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import calendarRoutes from "./routes/calendar.routes";
+import plannerRoutes from "./routes/planner.routes";
 import taskRoutes from "./routes/task.routes";
 import scheduleRoutes from "./routes/schedule.routes";
 import userRoutes from "./routes/user.routes";
@@ -34,6 +35,7 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
   app.use("/calendar", calendarRoutes);
+  app.use("/planner", plannerRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/tasks", taskRoutes);
   app.use("/api/schedule", scheduleRoutes);

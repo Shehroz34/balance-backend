@@ -57,6 +57,14 @@ exports.createTaskSchema = zod_1.z.object({
     deadline: zod_1.z
         .string()
         .datetime("Deadline must be a valid ISO date string"),
+    startTime: zod_1.z
+        .string()
+        .datetime("startTime must be a valid ISO date string")
+        .optional(),
+    endTime: zod_1.z
+        .string()
+        .datetime("endTime must be a valid ISO date string")
+        .optional(),
     priority: zod_1.z
         .enum(["low", "medium", "high"])
         .optional()
@@ -90,6 +98,14 @@ exports.updateTaskSchema = zod_1.z.object({
     deadline: zod_1.z
         .string()
         .datetime("Deadline must be a valid ISO date string")
+        .optional(),
+    startTime: zod_1.z
+        .string()
+        .datetime("startTime must be a valid ISO date string")
+        .optional(),
+    endTime: zod_1.z
+        .string()
+        .datetime("endTime must be a valid ISO date string")
         .optional(),
     priority: zod_1.z
         .enum(["low", "medium", "high"])

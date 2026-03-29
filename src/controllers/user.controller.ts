@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Task } from "../models/task.model";
 import { User } from "../models/User";
 
 export async function getProfile(req: Request, res: Response) {
@@ -45,6 +46,21 @@ export async function updateAvailability(req: Request, res: Response) {
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    // Availability changes should invalidate any manually pinned task blocks
+    // so the planner can rebuild the timetable from the new constraints.
+    await Task.updateMany(
+      {
+        user: req.userId,
+        status: "pending",
+      },
+      {
+        $set: {
+          startTime: null,
+          endTime: null,
+        },
+      }
+    );
 
     return res.json({
       message: "Availability updated successfully",

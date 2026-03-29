@@ -111,6 +111,20 @@ export async function getReplannedSchedule(req: Request, res: Response) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    // A full replan should discard any manually dragged task times first.
+    await Task.updateMany(
+      {
+        user: req.userId,
+        status: "pending",
+      },
+      {
+        $set: {
+          startTime: null,
+          endTime: null,
+        },
+      }
+    );
+
     const user = await User.findById(req.userId).select("-password");
 
     if (!user) {

@@ -8,6 +8,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const calendar_routes_1 = __importDefault(require("./routes/calendar.routes"));
+const planner_routes_1 = __importDefault(require("./routes/planner.routes"));
 const task_routes_1 = __importDefault(require("./routes/task.routes"));
 const schedule_routes_1 = __importDefault(require("./routes/schedule.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
@@ -32,6 +33,7 @@ function createApp() {
     app.use(express_1.default.json());
     app.get("/health", (_req, res) => res.json({ status: "ok" }));
     app.use("/calendar", calendar_routes_1.default);
+    app.use("/planner", planner_routes_1.default);
     app.use("/api/auth", auth_routes_1.default);
     app.use("/api/tasks", task_routes_1.default);
     app.use("/api/schedule", schedule_routes_1.default);
