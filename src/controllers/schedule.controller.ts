@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { ExternalCalendarEvent } from "../models/external-calendar-event.model";
 import { Task } from "../models/task.model";
 import { User } from "../models/User";
 import { sortTasksForSchedule } from "../utils/scheduler";
@@ -46,6 +47,9 @@ export async function getPlannedSchedule(req: Request, res: Response) {
     });
 
     const sortedTasks = sortTasksForSchedule(tasks);
+    const busyCalendarEvents = await ExternalCalendarEvent.find({
+      user: req.userId,
+    }).sort({ start: 1 });
 
     const result = generateDailyPlan(sortedTasks, {
       availableFrom: user.availableFrom,
@@ -53,7 +57,11 @@ export async function getPlannedSchedule(req: Request, res: Response) {
       breakStart: user.breakStart,
       breakEnd: user.breakEnd,
       freeDays: user.freeDays ?? [],
-    });
+    }, busyCalendarEvents.map((event) => ({
+      start: event.start,
+      end: event.end,
+      allDay: event.allDay,
+    })));
 
     const scheduledCount = result.summaries.filter(
       (t) => t.status === "scheduled"
@@ -115,6 +123,9 @@ export async function getReplannedSchedule(req: Request, res: Response) {
     });
 
     const sortedRemainingTasks = sortTasksForSchedule(remainingTasks);
+    const busyCalendarEvents = await ExternalCalendarEvent.find({
+      user: req.userId,
+    }).sort({ start: 1 });
 
     const result = generateDailyPlan(sortedRemainingTasks, {
       availableFrom: user.availableFrom,
@@ -122,7 +133,11 @@ export async function getReplannedSchedule(req: Request, res: Response) {
       breakStart: user.breakStart,
       breakEnd: user.breakEnd,
       freeDays: user.freeDays ?? [],
-    });
+    }, busyCalendarEvents.map((event) => ({
+      start: event.start,
+      end: event.end,
+      allDay: event.allDay,
+    })));
 
     const scheduledCount = result.summaries.filter(
       (t) => t.status === "scheduled"

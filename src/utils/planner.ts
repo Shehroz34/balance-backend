@@ -32,6 +32,12 @@ interface AvailabilitySettings {
   freeDays?: string[];
 }
 
+export interface BusyCalendarInterval {
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+}
+
 interface PlanResult {
   plan: PlannedTaskBlock[];
   summaries: TaskPlanningSummary[];
@@ -80,9 +86,38 @@ function getDateTimeFromDayAndMinutes(day: Date, totalMinutes: number): Date {
   return result;
 }
 
+function getBusyIntervalsForDay(
+  day: Date,
+  busyIntervals: BusyCalendarInterval[]
+): Array<{ start: number; end: number }> {
+  const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(day);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  return busyIntervals
+    .map((interval) => {
+      const start = interval.start > dayStart ? interval.start : dayStart;
+      const end = interval.end < dayEnd ? interval.end : dayEnd;
+
+      if (end <= dayStart || start >= dayEnd || end <= start) {
+        return null;
+      }
+
+      return {
+        start: start.getHours() * 60 + start.getMinutes(),
+        end: end.getHours() * 60 + end.getMinutes(),
+      };
+    })
+    .filter((interval): interval is { start: number; end: number } => interval !== null)
+    .sort((a, b) => a.start - b.start);
+}
+
 export function generateDailyPlan(
   tasks: ITask[],
-  availability: AvailabilitySettings
+  availability: AvailabilitySettings,
+  busyIntervals: BusyCalendarInterval[] = []
 ): PlanResult {
   const WORK_START = parseTimeToMinutes(availability.availableFrom);
   const WORK_END = parseTimeToMinutes(availability.availableTo);
@@ -113,6 +148,16 @@ export function generateDailyPlan(
         continue;
       }
 
+      const dayBusyIntervals = getBusyIntervalsForDay(currentDay, busyIntervals);
+      const overlappingBusyInterval = dayBusyIntervals.find(
+        (interval) => currentTime >= interval.start && currentTime < interval.end
+      );
+
+      if (overlappingBusyInterval) {
+        currentTime = overlappingBusyInterval.end;
+        continue;
+      }
+
       if (currentTime >= BREAK_START && currentTime < BREAK_END) {
         currentTime = BREAK_END;
       }
@@ -129,7 +174,11 @@ export function generateDailyPlan(
         break;
       }
 
-      const segmentEnd = currentTime < BREAK_START ? BREAK_START : WORK_END;
+      const nextBusyStart =
+        dayBusyIntervals.find((interval) => interval.start > currentTime)?.start ??
+        WORK_END;
+      const breakBoundary = currentTime < BREAK_START ? BREAK_START : WORK_END;
+      const segmentEnd = Math.min(breakBoundary, nextBusyStart, WORK_END);
       const availableMinutes = segmentEnd - currentTime;
 
       if (availableMinutes <= 0) {

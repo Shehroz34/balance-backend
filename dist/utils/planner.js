@@ -37,7 +37,27 @@ function getDateTimeFromDayAndMinutes(day, totalMinutes) {
     result.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
     return result;
 }
-function generateDailyPlan(tasks, availability) {
+function getBusyIntervalsForDay(day, busyIntervals) {
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    return busyIntervals
+        .map((interval) => {
+        const start = interval.start > dayStart ? interval.start : dayStart;
+        const end = interval.end < dayEnd ? interval.end : dayEnd;
+        if (end <= dayStart || start >= dayEnd || end <= start) {
+            return null;
+        }
+        return {
+            start: start.getHours() * 60 + start.getMinutes(),
+            end: end.getHours() * 60 + end.getMinutes(),
+        };
+    })
+        .filter((interval) => interval !== null)
+        .sort((a, b) => a.start - b.start);
+}
+function generateDailyPlan(tasks, availability, busyIntervals = []) {
     const WORK_START = parseTimeToMinutes(availability.availableFrom);
     const WORK_END = parseTimeToMinutes(availability.availableTo);
     const BREAK_START = parseTimeToMinutes(availability.breakStart);
@@ -61,6 +81,12 @@ function generateDailyPlan(tasks, availability) {
                 currentTime = WORK_START;
                 continue;
             }
+            const dayBusyIntervals = getBusyIntervalsForDay(currentDay, busyIntervals);
+            const overlappingBusyInterval = dayBusyIntervals.find((interval) => currentTime >= interval.start && currentTime < interval.end);
+            if (overlappingBusyInterval) {
+                currentTime = overlappingBusyInterval.end;
+                continue;
+            }
             if (currentTime >= BREAK_START && currentTime < BREAK_END) {
                 currentTime = BREAK_END;
             }
@@ -73,7 +99,10 @@ function generateDailyPlan(tasks, availability) {
             if (currentDateTime >= deadline) {
                 break;
             }
-            const segmentEnd = currentTime < BREAK_START ? BREAK_START : WORK_END;
+            const nextBusyStart = dayBusyIntervals.find((interval) => interval.start > currentTime)?.start ??
+                WORK_END;
+            const breakBoundary = currentTime < BREAK_START ? BREAK_START : WORK_END;
+            const segmentEnd = Math.min(breakBoundary, nextBusyStart, WORK_END);
             const availableMinutes = segmentEnd - currentTime;
             if (availableMinutes <= 0) {
                 currentTime = segmentEnd;
