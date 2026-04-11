@@ -57,7 +57,7 @@ function getBusyIntervalsForDay(day, busyIntervals) {
         .filter((interval) => interval !== null)
         .sort((a, b) => a.start - b.start);
 }
-function generateDailyPlan(tasks, availability, busyIntervals = []) {
+function generateDailyPlan(tasks, availability, busyIntervals = [], wellbeing) {
     const WORK_START = parseTimeToMinutes(availability.availableFrom);
     const WORK_END = parseTimeToMinutes(availability.availableTo);
     const BREAK_START = parseTimeToMinutes(availability.breakStart);
@@ -68,6 +68,8 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
     const summaries = [];
     let currentDay = new Date();
     currentDay.setHours(0, 0, 0, 0);
+    const todayKey = formatDate(currentDay);
+    let scheduledTodayMinutes = 0;
     let currentTime = WORK_START;
     for (const task of tasks) {
         const originalDuration = task.duration;
@@ -75,8 +77,20 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
         let scheduledDuration = 0;
         let blockCount = 0;
         const deadline = new Date(task.deadline);
+        let firstScheduledDate = null;
+        let delayedBecauseOfWellbeing = false;
         while (remainingDuration > 0) {
             if (freeDays.has(getWeekdayName(currentDay))) {
+                currentDay = addDays(currentDay, 1);
+                currentTime = WORK_START;
+                continue;
+            }
+            const isToday = formatDate(currentDay) === todayKey;
+            const remainingTodayCapacity = isToday && wellbeing?.effectiveWorkMinutes != null
+                ? wellbeing.effectiveWorkMinutes - scheduledTodayMinutes
+                : null;
+            if (isToday && remainingTodayCapacity != null && remainingTodayCapacity <= 0) {
+                delayedBecauseOfWellbeing = true;
                 currentDay = addDays(currentDay, 1);
                 currentTime = WORK_START;
                 continue;
@@ -112,7 +126,7 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
             if (minutesUntilDeadline <= 0) {
                 break;
             }
-            const blockDuration = Math.min(remainingDuration, availableMinutes, minutesUntilDeadline);
+            const blockDuration = Math.min(remainingDuration, availableMinutes, minutesUntilDeadline, remainingTodayCapacity ?? Number.POSITIVE_INFINITY);
             if (blockDuration <= 0) {
                 break;
             }
@@ -127,10 +141,17 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
                 priority: task.priority,
                 deadline: task.deadline,
                 status: "scheduled",
+                delayedBecauseOfWellbeing,
             });
+            if (!firstScheduledDate) {
+                firstScheduledDate = formatDate(currentDay);
+            }
             currentTime += blockDuration;
             remainingDuration -= blockDuration;
             scheduledDuration += blockDuration;
+            if (isToday) {
+                scheduledTodayMinutes += blockDuration;
+            }
             if (remainingDuration === 0) {
                 currentTime += BREAK_GAP;
             }
@@ -152,6 +173,12 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
         else {
             summaryStatus = "scheduled";
         }
+        if (wellbeing?.scheduleLightened &&
+            !delayedBecauseOfWellbeing &&
+            firstScheduledDate &&
+            firstScheduledDate !== todayKey) {
+            delayedBecauseOfWellbeing = true;
+        }
         summaries.push({
             taskId: String(task._id),
             title: task.title,
@@ -162,6 +189,7 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
             priority: task.priority,
             status: summaryStatus,
             reason,
+            delayedBecauseOfWellbeing,
         });
     }
     for (const block of plan) {
@@ -178,5 +206,5 @@ function generateDailyPlan(tasks, availability, busyIntervals = []) {
             block.status = "scheduled";
         }
     }
-    return { plan, summaries };
+    return { plan, summaries, wellbeing };
 }

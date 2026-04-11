@@ -3,9 +3,14 @@ import { Request, Response } from "express";
 import { ExternalCalendarEvent } from "../models/external-calendar-event.model";
 import { Task } from "../models/task.model";
 import { User } from "../models/User";
+import { Wellbeing } from "../models/wellbeing.model";
 import { generateDailyPlan } from "../utils/planner";
 import { sortTasksForSchedule } from "../utils/scheduler";
 import { logger } from "../utils/logger";
+import {
+  getAvailableWorkMinutesForDay,
+  resolveWellbeingPlanningContext,
+} from "../utils/wellbeing-planner";
 
 interface PlannerEvent {
   id: string;
@@ -32,6 +37,20 @@ export async function getPlannerSchedule(req: Request, res: Response) {
       status: "pending",
     }).sort({ deadline: 1 });
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const wellbeing = await Wellbeing.findOne({
+      user: req.userId,
+      date: {
+        $gte: startOfToday,
+        $lte: endOfToday,
+      },
+    });
+
     const busyCalendarEvents = await ExternalCalendarEvent.find({
       user: req.userId,
     }).sort({ start: 1 });
@@ -40,8 +59,22 @@ export async function getPlannerSchedule(req: Request, res: Response) {
     const manuallyScheduledTasks = tasks.filter((task) => task.startTime && task.endTime);
     const tasksNeedingPlanner = tasks.filter((task) => !task.startTime || !task.endTime);
 
+    const normalAvailableMinutes = getAvailableWorkMinutesForDay(
+      user.availableFrom,
+      user.availableTo,
+      user.breakStart,
+      user.breakEnd
+    );
+    const wellbeingPlanning = resolveWellbeingPlanningContext(
+      wellbeing?.wellbeingLevel,
+      normalAvailableMinutes,
+      wellbeing?.note
+    );
+
     const plannedResult = generateDailyPlan(
-      sortTasksForSchedule(tasksNeedingPlanner),
+      sortTasksForSchedule(tasksNeedingPlanner, {
+        wellbeingLevel: wellbeing?.wellbeingLevel,
+      }),
       {
         availableFrom: user.availableFrom,
         availableTo: user.availableTo,
@@ -53,7 +86,8 @@ export async function getPlannerSchedule(req: Request, res: Response) {
         start: event.start,
         end: event.end,
         allDay: event.allDay,
-      }))
+      })),
+      wellbeingPlanning
     );
 
     const manualEvents: PlannerEvent[] = manuallyScheduledTasks.map((task) => ({

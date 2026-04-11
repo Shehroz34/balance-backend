@@ -4,9 +4,11 @@ exports.getPlannerSchedule = getPlannerSchedule;
 const external_calendar_event_model_1 = require("../models/external-calendar-event.model");
 const task_model_1 = require("../models/task.model");
 const User_1 = require("../models/User");
+const wellbeing_model_1 = require("../models/wellbeing.model");
 const planner_1 = require("../utils/planner");
 const scheduler_1 = require("../utils/scheduler");
 const logger_1 = require("../utils/logger");
+const wellbeing_planner_1 = require("../utils/wellbeing-planner");
 async function getPlannerSchedule(req, res) {
     try {
         if (!req.userId) {
@@ -20,13 +22,28 @@ async function getPlannerSchedule(req, res) {
             user: req.userId,
             status: "pending",
         }).sort({ deadline: 1 });
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+        const wellbeing = await wellbeing_model_1.Wellbeing.findOne({
+            user: req.userId,
+            date: {
+                $gte: startOfToday,
+                $lte: endOfToday,
+            },
+        });
         const busyCalendarEvents = await external_calendar_event_model_1.ExternalCalendarEvent.find({
             user: req.userId,
         }).sort({ start: 1 });
         // Tasks that were moved directly in the calendar should keep their explicit times.
         const manuallyScheduledTasks = tasks.filter((task) => task.startTime && task.endTime);
         const tasksNeedingPlanner = tasks.filter((task) => !task.startTime || !task.endTime);
-        const plannedResult = (0, planner_1.generateDailyPlan)((0, scheduler_1.sortTasksForSchedule)(tasksNeedingPlanner), {
+        const normalAvailableMinutes = (0, wellbeing_planner_1.getAvailableWorkMinutesForDay)(user.availableFrom, user.availableTo, user.breakStart, user.breakEnd);
+        const wellbeingPlanning = (0, wellbeing_planner_1.resolveWellbeingPlanningContext)(wellbeing?.wellbeingLevel, normalAvailableMinutes, wellbeing?.note);
+        const plannedResult = (0, planner_1.generateDailyPlan)((0, scheduler_1.sortTasksForSchedule)(tasksNeedingPlanner, {
+            wellbeingLevel: wellbeing?.wellbeingLevel,
+        }), {
             availableFrom: user.availableFrom,
             availableTo: user.availableTo,
             breakStart: user.breakStart,
@@ -36,7 +53,7 @@ async function getPlannerSchedule(req, res) {
             start: event.start,
             end: event.end,
             allDay: event.allDay,
-        })));
+        })), wellbeingPlanning);
         const manualEvents = manuallyScheduledTasks.map((task) => ({
             id: String(task._id),
             taskId: String(task._id),

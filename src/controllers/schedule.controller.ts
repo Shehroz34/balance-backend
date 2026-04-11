@@ -2,8 +2,29 @@ import { Request, Response } from "express";
 import { ExternalCalendarEvent } from "../models/external-calendar-event.model";
 import { Task } from "../models/task.model";
 import { User } from "../models/User";
+import { Wellbeing } from "../models/wellbeing.model";
 import { sortTasksForSchedule } from "../utils/scheduler";
 import { generateDailyPlan } from "../utils/planner";
+import {
+  getAvailableWorkMinutesForDay,
+  resolveWellbeingPlanningContext,
+} from "../utils/wellbeing-planner";
+
+async function getTodayWellbeingForUser(userId: string) {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+
+  return Wellbeing.findOne({
+    user: userId,
+    date: {
+      $gte: startOfToday,
+      $lte: endOfToday,
+    },
+  });
+}
 
 export async function getSuggestedSchedule(req: Request, res: Response) {
   try {
@@ -16,12 +37,16 @@ export async function getSuggestedSchedule(req: Request, res: Response) {
       status: "pending",
     });
 
-    const sortedTasks = sortTasksForSchedule(tasks);
+    const wellbeing = await getTodayWellbeingForUser(req.userId);
+    const sortedTasks = sortTasksForSchedule(tasks, {
+      wellbeingLevel: wellbeing?.wellbeingLevel,
+    });
 
     return res.json({
       message: "Suggested schedule generated successfully",
       totalTasks: sortedTasks.length,
       tasks: sortedTasks,
+      appliedWellbeingLevel: wellbeing?.wellbeingLevel ?? 4,
     });
   } catch (error) {
     console.error("SUGGESTED SCHEDULE ERROR:", error);
@@ -46,22 +71,42 @@ export async function getPlannedSchedule(req: Request, res: Response) {
       status: "pending",
     });
 
-    const sortedTasks = sortTasksForSchedule(tasks);
+    const wellbeing = await getTodayWellbeingForUser(req.userId);
+    const normalAvailableMinutes = getAvailableWorkMinutesForDay(
+      user.availableFrom,
+      user.availableTo,
+      user.breakStart,
+      user.breakEnd
+    );
+    const wellbeingPlanning = resolveWellbeingPlanningContext(
+      wellbeing?.wellbeingLevel,
+      normalAvailableMinutes,
+      wellbeing?.note
+    );
+
+    const sortedTasks = sortTasksForSchedule(tasks, {
+      wellbeingLevel: wellbeing?.wellbeingLevel,
+    });
     const busyCalendarEvents = await ExternalCalendarEvent.find({
       user: req.userId,
     }).sort({ start: 1 });
 
-    const result = generateDailyPlan(sortedTasks, {
-      availableFrom: user.availableFrom,
-      availableTo: user.availableTo,
-      breakStart: user.breakStart,
-      breakEnd: user.breakEnd,
-      freeDays: user.freeDays ?? [],
-    }, busyCalendarEvents.map((event) => ({
-      start: event.start,
-      end: event.end,
-      allDay: event.allDay,
-    })));
+    const result = generateDailyPlan(
+      sortedTasks,
+      {
+        availableFrom: user.availableFrom,
+        availableTo: user.availableTo,
+        breakStart: user.breakStart,
+        breakEnd: user.breakEnd,
+        freeDays: user.freeDays ?? [],
+      },
+      busyCalendarEvents.map((event) => ({
+        start: event.start,
+        end: event.end,
+        allDay: event.allDay,
+      })),
+      wellbeingPlanning
+    );
 
     const scheduledCount = result.summaries.filter(
       (t) => t.status === "scheduled"
@@ -96,6 +141,14 @@ export async function getPlannedSchedule(req: Request, res: Response) {
         atRisk: atRiskCount,
         missedDeadline: missedCount,
       },
+      appliedWellbeingLevel: wellbeingPlanning.appliedWellbeingLevel,
+      effectiveWorkHours:
+        wellbeingPlanning.effectiveWorkMinutes == null
+          ? null
+          : Number((wellbeingPlanning.effectiveWorkMinutes / 60).toFixed(2)),
+      reservedRestMinutes: wellbeingPlanning.reservedRestMinutes,
+      wellbeingNote: wellbeingPlanning.wellbeingNote ?? "",
+      scheduleLightened: wellbeingPlanning.scheduleLightened,
       plan: result.plan,
       summaries: result.summaries,
     });
@@ -136,22 +189,42 @@ export async function getReplannedSchedule(req: Request, res: Response) {
       status: "pending",
     });
 
-    const sortedRemainingTasks = sortTasksForSchedule(remainingTasks);
+    const wellbeing = await getTodayWellbeingForUser(req.userId);
+    const normalAvailableMinutes = getAvailableWorkMinutesForDay(
+      user.availableFrom,
+      user.availableTo,
+      user.breakStart,
+      user.breakEnd
+    );
+    const wellbeingPlanning = resolveWellbeingPlanningContext(
+      wellbeing?.wellbeingLevel,
+      normalAvailableMinutes,
+      wellbeing?.note
+    );
+
+    const sortedRemainingTasks = sortTasksForSchedule(remainingTasks, {
+      wellbeingLevel: wellbeing?.wellbeingLevel,
+    });
     const busyCalendarEvents = await ExternalCalendarEvent.find({
       user: req.userId,
     }).sort({ start: 1 });
 
-    const result = generateDailyPlan(sortedRemainingTasks, {
-      availableFrom: user.availableFrom,
-      availableTo: user.availableTo,
-      breakStart: user.breakStart,
-      breakEnd: user.breakEnd,
-      freeDays: user.freeDays ?? [],
-    }, busyCalendarEvents.map((event) => ({
-      start: event.start,
-      end: event.end,
-      allDay: event.allDay,
-    })));
+    const result = generateDailyPlan(
+      sortedRemainingTasks,
+      {
+        availableFrom: user.availableFrom,
+        availableTo: user.availableTo,
+        breakStart: user.breakStart,
+        breakEnd: user.breakEnd,
+        freeDays: user.freeDays ?? [],
+      },
+      busyCalendarEvents.map((event) => ({
+        start: event.start,
+        end: event.end,
+        allDay: event.allDay,
+      })),
+      wellbeingPlanning
+    );
 
     const scheduledCount = result.summaries.filter(
       (t) => t.status === "scheduled"
@@ -186,6 +259,14 @@ export async function getReplannedSchedule(req: Request, res: Response) {
         atRisk: atRiskCount,
         missedDeadline: missedCount,
       },
+      appliedWellbeingLevel: wellbeingPlanning.appliedWellbeingLevel,
+      effectiveWorkHours:
+        wellbeingPlanning.effectiveWorkMinutes == null
+          ? null
+          : Number((wellbeingPlanning.effectiveWorkMinutes / 60).toFixed(2)),
+      reservedRestMinutes: wellbeingPlanning.reservedRestMinutes,
+      wellbeingNote: wellbeingPlanning.wellbeingNote ?? "",
+      scheduleLightened: wellbeingPlanning.scheduleLightened,
       plan: result.plan,
       summaries: result.summaries,
     });

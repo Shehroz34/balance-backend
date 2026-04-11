@@ -1,4 +1,5 @@
 import { ITask } from "../models/task.model";
+import type { WellbeingPlanningContext } from "./wellbeing-planner";
 
 export interface PlannedTaskBlock {
   taskId: string;
@@ -10,6 +11,7 @@ export interface PlannedTaskBlock {
   priority: string;
   deadline: Date;
   status: "scheduled" | "splitAcrossDays" | "atRisk";
+  delayedBecauseOfWellbeing?: boolean;
 }
 
 export interface TaskPlanningSummary {
@@ -22,6 +24,7 @@ export interface TaskPlanningSummary {
   priority: string;
   status: "scheduled" | "splitAcrossDays" | "atRisk" | "missedDeadline";
   reason?: string;
+  delayedBecauseOfWellbeing?: boolean;
 }
 
 interface AvailabilitySettings {
@@ -41,6 +44,7 @@ export interface BusyCalendarInterval {
 interface PlanResult {
   plan: PlannedTaskBlock[];
   summaries: TaskPlanningSummary[];
+  wellbeing?: WellbeingPlanningContext;
 }
 
 function pad(num: number): string {
@@ -117,7 +121,8 @@ function getBusyIntervalsForDay(
 export function generateDailyPlan(
   tasks: ITask[],
   availability: AvailabilitySettings,
-  busyIntervals: BusyCalendarInterval[] = []
+  busyIntervals: BusyCalendarInterval[] = [],
+  wellbeing?: WellbeingPlanningContext
 ): PlanResult {
   const WORK_START = parseTimeToMinutes(availability.availableFrom);
   const WORK_END = parseTimeToMinutes(availability.availableTo);
@@ -131,6 +136,8 @@ export function generateDailyPlan(
 
   let currentDay = new Date();
   currentDay.setHours(0, 0, 0, 0);
+  const todayKey = formatDate(currentDay);
+  let scheduledTodayMinutes = 0;
 
   let currentTime = WORK_START;
 
@@ -140,9 +147,24 @@ export function generateDailyPlan(
     let scheduledDuration = 0;
     let blockCount = 0;
     const deadline = new Date(task.deadline);
+    let firstScheduledDate: string | null = null;
+    let delayedBecauseOfWellbeing = false;
 
     while (remainingDuration > 0) {
       if (freeDays.has(getWeekdayName(currentDay))) {
+        currentDay = addDays(currentDay, 1);
+        currentTime = WORK_START;
+        continue;
+      }
+
+      const isToday = formatDate(currentDay) === todayKey;
+      const remainingTodayCapacity =
+        isToday && wellbeing?.effectiveWorkMinutes != null
+          ? wellbeing.effectiveWorkMinutes - scheduledTodayMinutes
+          : null;
+
+      if (isToday && remainingTodayCapacity != null && remainingTodayCapacity <= 0) {
+        delayedBecauseOfWellbeing = true;
         currentDay = addDays(currentDay, 1);
         currentTime = WORK_START;
         continue;
@@ -197,7 +219,8 @@ export function generateDailyPlan(
       const blockDuration = Math.min(
         remainingDuration,
         availableMinutes,
-        minutesUntilDeadline
+        minutesUntilDeadline,
+        remainingTodayCapacity ?? Number.POSITIVE_INFINITY
       );
 
       if (blockDuration <= 0) {
@@ -216,11 +239,20 @@ export function generateDailyPlan(
         priority: task.priority,
         deadline: task.deadline,
         status: "scheduled",
+        delayedBecauseOfWellbeing,
       });
+
+      if (!firstScheduledDate) {
+        firstScheduledDate = formatDate(currentDay);
+      }
 
       currentTime += blockDuration;
       remainingDuration -= blockDuration;
       scheduledDuration += blockDuration;
+
+      if (isToday) {
+        scheduledTodayMinutes += blockDuration;
+      }
 
       if (remainingDuration === 0) {
         currentTime += BREAK_GAP;
@@ -243,6 +275,15 @@ export function generateDailyPlan(
       summaryStatus = "scheduled";
     }
 
+    if (
+      wellbeing?.scheduleLightened &&
+      !delayedBecauseOfWellbeing &&
+      firstScheduledDate &&
+      firstScheduledDate !== todayKey
+    ) {
+      delayedBecauseOfWellbeing = true;
+    }
+
     summaries.push({
       taskId: String(task._id),
       title: task.title,
@@ -253,6 +294,7 @@ export function generateDailyPlan(
       priority: task.priority,
       status: summaryStatus,
       reason,
+      delayedBecauseOfWellbeing,
     });
   }
 
@@ -269,5 +311,5 @@ export function generateDailyPlan(
     }
   }
 
-  return { plan, summaries };
+  return { plan, summaries, wellbeing };
 }
