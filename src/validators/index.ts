@@ -163,3 +163,18 @@ export const availabilitySchema = z.object({
     .max(7, "freeDays cannot contain more than 7 values")
     .default([]),
 });
+
+export const wellbeingSchema = z.object({
+  wellbeingLevel: z
+    .number()
+    .int("wellbeingLevel must be a whole number")
+    .min(1, "wellbeingLevel must be between 1 and 4")
+    .max(4, "wellbeingLevel must be between 1 and 4"),
+
+  note: z
+    .string()
+    .trim()
+    .max(500, "Note must be at most 500 characters")
+    .optional()
+    .default(""),
+});

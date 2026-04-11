@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const wellbeing_controller_1 = require("../controllers/wellbeing.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const validate_middleware_1 = require("../middleware/validate.middleware");
+const validators_1 = require("../validators");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.requireAuth);
+router.post("/", (0, validate_middleware_1.validateBody)(validators_1.wellbeingSchema), wellbeing_controller_1.saveTodayWellbeing);
+router.get("/today", wellbeing_controller_1.getTodayWellbeing);
+exports.default = router;

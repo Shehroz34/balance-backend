@@ -6,6 +6,7 @@ import plannerRoutes from "./routes/planner.routes";
 import taskRoutes from "./routes/task.routes";
 import scheduleRoutes from "./routes/schedule.routes";
 import userRoutes from "./routes/user.routes";
+import wellbeingRoutes from "./routes/wellbeing.routes";
 import { requestLogger } from "./middleware/request-logger.middleware";
 import { logger } from "./utils/logger";
 
@@ -40,6 +41,7 @@ export function createApp() {
   app.use("/api/tasks", taskRoutes);
   app.use("/api/schedule", scheduleRoutes);
   app.use("/api/users", userRoutes);
+  app.use("/api/wellbeing", wellbeingRoutes);
 
   app.use(
     (err: unknown, req: Request, res: Response, _next: NextFunction) => {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.availabilitySchema = exports.updateTaskSchema = exports.createTaskSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.wellbeingSchema = exports.availabilitySchema = exports.updateTaskSchema = exports.createTaskSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const weekDayValues = [
@@ -136,4 +136,17 @@ exports.availabilitySchema = zod_1.z.object({
         .array(zod_1.z.enum(weekDayValues))
         .max(7, "freeDays cannot contain more than 7 values")
         .default([]),
+});
+exports.wellbeingSchema = zod_1.z.object({
+    wellbeingLevel: zod_1.z
+        .number()
+        .int("wellbeingLevel must be a whole number")
+        .min(1, "wellbeingLevel must be between 1 and 4")
+        .max(4, "wellbeingLevel must be between 1 and 4"),
+    note: zod_1.z
+        .string()
+        .trim()
+        .max(500, "Note must be at most 500 characters")
+        .optional()
+        .default(""),
 });

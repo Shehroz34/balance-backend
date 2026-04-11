@@ -12,6 +12,7 @@ const planner_routes_1 = __importDefault(require("./routes/planner.routes"));
 const task_routes_1 = __importDefault(require("./routes/task.routes"));
 const schedule_routes_1 = __importDefault(require("./routes/schedule.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const wellbeing_routes_1 = __importDefault(require("./routes/wellbeing.routes"));
 const request_logger_middleware_1 = require("./middleware/request-logger.middleware");
 const logger_1 = require("./utils/logger");
 function createApp() {
@@ -38,6 +39,7 @@ function createApp() {
     app.use("/api/tasks", task_routes_1.default);
     app.use("/api/schedule", schedule_routes_1.default);
     app.use("/api/users", user_routes_1.default);
+    app.use("/api/wellbeing", wellbeing_routes_1.default);
     app.use((err, req, res, _next) => {
         logger_1.logger.error(`Unhandled error on ${req.method} ${req.originalUrl}`, err);
         res.status(500).json({ message: "Internal server error" });
